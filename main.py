@@ -12,10 +12,16 @@ import random as rand
 from numpy import dsplit
 import time 
 import numpy as np
+from matplotlib.animation import FuncAnimation 
+
 
 #definitions
 mapWidth = 2058
 mapHeight = 2058
+tm = tw.TimeWrapper()
+pln = plane.PlaneGeneration(tm)
+prt = port.AirportGeneration(mapWidth,mapHeight)
+rt = route.RouteGeneration()
 
 dx_matrix = np.array(1)
 line_matrix = np.array(1)
@@ -56,17 +62,16 @@ def readGisData(file_path):
     return m_list
 
 
+def animate(i):
 
+    result_x,result_y = pln.updateAllPlanePos()
+    plt.scatter(result_x,result_y,color='black',s=0.8)
 
 def main():
     airport_list = readGisData("airports.dat.txt")
     plane_list = readGisData("planes.dat.txt")
     route_list = readGisData("routes.dat.txt")
     rand.seed(10)
-    tm = tw.TimeWrapper()
-    pln = plane.PlaneGeneration()
-    prt = port.AirportGeneration(mapWidth,mapHeight)
-    rt = route.RouteGeneration()
 
 
     #////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,7 +108,7 @@ def main():
             x_domain,y_domain = rt.getDomain(src_coords,dst_coords)    #get the domain for the specified route
 
 
-            tmp_tuple = slope,c,x_domain,y_domain , src_coords, dst_coords   #insert data to a tuple and append it                                      
+            tmp_tuple = slope, c, x_domain, y_domain, src_coords, dst_coords   #insert data to a tuple and append it                                      
             line_eqs.append(tmp_tuple)
     
     print("route creation completed!")
@@ -114,16 +119,24 @@ def main():
     route_id = 0
     active_planes = []
     for data in line_eqs:
-        p = pln.generatePlane(plane_list,route_id)
+        p = pln.generatePlane(plane_list,route_id,data)
         active_planes.append(p)
         route_id +=1
     print(str(len(active_planes))+" planes generated and assigned to a route successfuly!")
     print("beginning simulation...")
     
+    p = active_planes[0]
+    spoof_planes = []
+    spoof_planes.append(p)
+    print(p)
     
+    pln.generateTransformMatrices(active_planes[:1],line_eqs[:1])
     
-    
-
+   
+    #while(tm.global_time<10):
+    #    plt.scatter(result_x,result_y,color='black',s=1.5)
+        
+    print("x: " + str(result_x) + " y: "+str(result_y))
 
 
     #///////////////////////////////////////////////////////////////////////////////////////////
@@ -132,7 +145,8 @@ def main():
     imgplot = plt.imshow(img)
     plt.xlim(0, mapWidth)
     plt.ylim(mapHeight,0)
-    plt.scatter(x_coords,y_coords,color='red',s=1.5)
+    plt.scatter(x_coords,y_coords,color='red',s=0.1)
+    anim = FuncAnimation(plt.gcf(), animate,interval = 60)
     plt.show()
 
 if __name__ == "__main__":
