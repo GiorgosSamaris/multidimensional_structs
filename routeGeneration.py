@@ -30,4 +30,4 @@ class RouteGeneration:
             c = float(end[1] - slope*end[0])
             return slope, c 
         except ZeroDivisionError:
-            return None,None
+            return 0,0

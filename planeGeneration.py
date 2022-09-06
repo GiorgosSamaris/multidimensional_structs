@@ -1,3 +1,4 @@
+from ctypes import sizeof
 import random as rand
 import math as mth
 import timeWrapper as tw
@@ -9,11 +10,12 @@ class PlaneGeneration:
 
     def __init__(self,time_obj) :
         self.dx_matrix = np.empty((0,2))
-        self.line_matrix = np.empty((2,0))
+        self.line_matrix = np.empty((0,2))
         self.tm = time_obj
         
     def generatePlane(self,plane_list, route_id,route):
     #icao,route_id,vel,x,y,t
+        #print("Route is: "+str(route))
         plane = str(),int(),int(),int(),int,float()           
 
         #choose a random plane from the list
@@ -28,7 +30,8 @@ class PlaneGeneration:
        
         t_0 = self.tm.global_time
 
-        start_point = route[5]
+        start_point = route[4]
+        
         x_0 = start_point[0]
         y_0 = start_point[1]
         
@@ -41,14 +44,14 @@ class PlaneGeneration:
 
     def getVelocityX(self,velocity,slope,src,dst):
         sign = 1
-        slope = 0
+        
         #REMEMBER TO CHECK FOR SLOPE NONE 
         if dst[0] - src[0] > 0:
            sign = 1
         else: sign = -1
         try:
             #calculate the vertex x of velocity
-            velocity_x = velocity/((1-slope)*(1+slope))
+            velocity_x = velocity/mth.sqrt(1+slope**2)
         except ZeroDivisionError:
             velocity_x = mth.sin(45)*velocity
         return velocity_x*sign
@@ -56,22 +59,23 @@ class PlaneGeneration:
     #/////////////////////////////////////TRANSFORM MATRICES//////////////////////////////////////////////
 
     def updateDxMatrix(self):
-        self.dx_matrix = np.delete(self.dx_matrix,1,axis=0)
+        self.dx_matrix = np.delete(self.dx_matrix,1,axis=1)
+        self.dx_matrix = np.column_stack((self.dx_matrix,result_x.T))
         #print(self.dx_matrix)
-        self.dx_matrix = np.hstack([self.dx_matrix,result_x])
+
 
 
     def appendDxMatrix(self,velocity,slope,src,dst):
         #global dx_matrix
         velocity_x = self.getVelocityX(velocity,slope,src,dst)
         #print("velocity x: "+str(velocity_x))
-        self.dx_matrix = np.append(self.dx_matrix,[velocity_x,src[0]])
+        self.dx_matrix = np.vstack((self.dx_matrix,[velocity_x,src[0]]))
         #print("dx matrix: "+ str(self.dx_matrix))
 
     def appendLineMatrix(self,slope,c):
         #global line_matrix
         
-        self.line_matrix = np.append(self.line_matrix,[slope,c])
+        self.line_matrix = np.vstack((self.line_matrix,[slope,c]))
         #print("Line matrix: "+ str(self.line_matrix))
 
 
@@ -94,45 +98,30 @@ class PlaneGeneration:
         global result_x
         #get time displacement matrix
         dt = self.tm.getDt()
-      
+        
         result_x = np.matmul(self.dx_matrix,dt)
-        one_matrix = np.ones(result_x.size)
-        new_result_x = np.append(result_x,one_matrix)
+        
+        
+        [a,b] = np.hsplit(self.line_matrix,2)
+        
+        a = a.flatten()
+        
        
-        result_y = np.matmul(new_result_x,self.line_matrix)
+        temp_y = result_x*a
+        temp_y = temp_y.flatten()
+        
+        b = b.flatten()
+        
+        
+       
+        result_y = np.add(temp_y,b)
+        
+        result_y = result_y.flatten()
+       
         
         self.updateDxMatrix()
         return result_x,result_y
        
 
 
-    #old function
-    def planePos(self,plane,line_equations):
-        #get the route_id and retrieve the line equation from the list 
-        route_id = plane[1]
-        line_eq = line_equations[route_id]
-
-        #get data from the lists
-        slope = line_eq[0]
-        c = line_eq[1]
-        velocity = plane[2]
-        x_0 = plane[3]
-        y_0 = plane[4]
-        t_0 = plane[5]
-        src_coords = line_eq[4]
-
-        #find the sign (direction) of velocity
-        sign = velocity/abs(velocity)  
-
-
-
-        try:
-            #calculate the vertex x of velocity
-            velocity_x = velocity/((1-slope)*(1+slope))
-            #find the displacement of x 
-            x = velocity_x*(self.tm.global_time - t_0)+ x_0
-            #calculate y
-            y = slope*x + c
-            return x,y
-        except ZeroDivisionError:
-            return x_0,y_0
+ 

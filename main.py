@@ -63,9 +63,10 @@ def readGisData(file_path):
 
 
 def animate(i):
-
+    plt.cla()
     result_x,result_y = pln.updateAllPlanePos()
-    plt.scatter(result_x,result_y,color='black',s=0.8)
+    
+    plt.scatter(result_x,result_y,color='black',s=0.05)
 
 def main():
     airport_list = readGisData("airports.dat.txt")
@@ -125,24 +126,18 @@ def main():
     print(str(len(active_planes))+" planes generated and assigned to a route successfuly!")
     print("beginning simulation...")
     
-    p = active_planes[0]
-    spoof_planes = []
-    spoof_planes.append(p)
-    print(p)
+   
     
-    pln.generateTransformMatrices(active_planes[:1],line_eqs[:1])
+    pln.generateTransformMatrices(active_planes,line_eqs)
     
    
-    #while(tm.global_time<10):
-    #    plt.scatter(result_x,result_y,color='black',s=1.5)
-        
-    print("x: " + str(result_x) + " y: "+str(result_y))
-
+  
 
     #///////////////////////////////////////////////////////////////////////////////////////////
     x_coords,y_coords = listToArray(port_loc)
     img = mpimg.imread('map.jpeg')
     imgplot = plt.imshow(img)
+    #fig,ax = plt.subplot()
     plt.xlim(0, mapWidth)
     plt.ylim(mapHeight,0)
     plt.scatter(x_coords,y_coords,color='red',s=0.1)
