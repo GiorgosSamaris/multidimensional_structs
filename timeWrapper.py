@@ -8,10 +8,12 @@ class TimeWrapper:
 
     #Gets current time in seconds from 1970 and uses it as a point of reference for time calculatiobs
     def __init__(self):
+        self.startTime()
+
+
+    def startTime(self):
         self.epoch = time.time()
         self.updateCurrentTime()
-    
-        
 
     #Gets current time
     
