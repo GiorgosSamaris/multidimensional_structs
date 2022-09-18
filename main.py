@@ -13,6 +13,7 @@ from numpy import dsplit
 import time 
 import numpy as np
 from matplotlib.animation import FuncAnimation 
+import read_write_csv as csvW
 
 
 #definitions
@@ -22,11 +23,13 @@ tm = tw.TimeWrapper()
 pln = plane.PlaneGeneration(tm)
 prt = port.AirportGeneration(mapWidth,mapHeight)
 rt = route.RouteGeneration()
+wrt = csvW.ReadWriteCSV(operation='write')
 
 dx_matrix = np.array(1)
 line_matrix = np.array(1)
 result_x = np.array(1)
 result_y = np.array(1)
+
 
 
 #//////////////////////////////////////////////MISC.////////////////////////////////////////////////////
@@ -63,8 +66,11 @@ def readGisData(file_path):
 
 
 def animate(i):
-    plt.cla()
     result_x,result_y = pln.updateAllPlanePos()
+    time_stamp=tm.global_time
+    time = np.full(len(result_x), time_stamp)
+    stacked = np.vstack([result_x,result_y,time])
+    wrt.writeCSV(stacked.T)
     
     plt.scatter(result_x,result_y,color='black',s=0.05)
 
@@ -128,20 +134,23 @@ def main():
     
    
     
-    pln.generateTransformMatrices(active_planes,line_eqs)
+    pln.generateTransformMatrices(active_planes[:10],line_eqs[:10])
     
    
   
 
     #///////////////////////////////////////////////////////////////////////////////////////////
-    x_coords,y_coords = listToArray(port_loc)
+
+
     img = mpimg.imread('map.jpeg')
     imgplot = plt.imshow(img)
     #fig,ax = plt.subplot()
     plt.xlim(0, mapWidth)
     plt.ylim(mapHeight,0)
+    x_coords,y_coords = listToArray(port_loc)
     plt.scatter(x_coords,y_coords,color='red',s=0.1)
-    anim = FuncAnimation(plt.gcf(), animate,interval = 60)
+    tm.startTime()
+    anim = FuncAnimation(plt.gcf(), animate,interval = 100,frames=20)
     plt.show()
 
 if __name__ == "__main__":

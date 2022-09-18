@@ -86,9 +86,7 @@ class PlaneGeneration:
             slope = line_eq[0]
             c = line_eq[1]
             velocity = plane[2]
-            #x_0 = plane[3]
-           
-            #print("velocity x: "+ str(v_x))
+            
             self.appendDxMatrix(velocity,slope,line_eq[4],line_eq[5])
             self.appendLineMatrix(slope,c)
 
