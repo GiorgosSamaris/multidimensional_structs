@@ -24,10 +24,10 @@ class PlaneGeneration:
 
         #get the icao number from openFlights
         icao = str(choice[2])             
+       
+        #give a random velocity value to the generated plane                          
         velocity = rand.randint(10,30)
 
-        #give a random velocity value to the generated plane                          
-       
         t_0 = self.tm.global_time
 
         start_point = route[4]
@@ -58,19 +58,15 @@ class PlaneGeneration:
 
     #/////////////////////////////////////TRANSFORM MATRICES//////////////////////////////////////////////
 
-    def updateDxMatrix(self):
-        self.dx_matrix = np.delete(self.dx_matrix,1,axis=1)
-        self.dx_matrix = np.column_stack((self.dx_matrix,result_x.T))
-        #print(self.dx_matrix)
 
 
 
     def appendDxMatrix(self,velocity,slope,src,dst):
-        #global dx_matrix
+       
         velocity_x = self.getVelocityX(velocity,slope,src,dst)
-        #print("velocity x: "+str(velocity_x))
+        
         self.dx_matrix = np.vstack((self.dx_matrix,[velocity_x,src[0]]))
-        #print("dx matrix: "+ str(self.dx_matrix))
+        
 
     def appendLineMatrix(self,slope,c):
         #global line_matrix
@@ -78,6 +74,11 @@ class PlaneGeneration:
         self.line_matrix = np.vstack((self.line_matrix,[slope,c]))
         #print("Line matrix: "+ str(self.line_matrix))
 
+
+    def updateDxMatrix(self):
+        self.dx_matrix = np.delete(self.dx_matrix,1,axis=1)
+        self.dx_matrix = np.column_stack((self.dx_matrix,result_x.T))
+        
 
     def generateTransformMatrices(self,plane_list,line_list):
         for plane in plane_list:
@@ -90,7 +91,35 @@ class PlaneGeneration:
             self.appendDxMatrix(velocity,slope,line_eq[4],line_eq[5])
             self.appendLineMatrix(slope,c)
 
+
+    #calculate displacement given initial time and time of interest
+    def calcDisplacement(self,t_0,t):
+        
+        #get time displacement matrix
+        dt = [t - t_0,1]
+        
+        result_x = np.matmul(self.dx_matrix,dt)
+        
+        
+        [a,b] = np.hsplit(self.line_matrix,2)
+        
+        a = a.flatten()
+        b = b.flatten()
+        
+       
+        temp_y = result_x*a
+        temp_y = temp_y.flatten()
+        
+        
+        result_y = np.add(temp_y,b)
+        result_y = result_y.flatten()
+        return result_x,result_y
+
+
+
+
     #implimentation of planePos but with matrix multiplication
+    #probably depricated 
     def updateAllPlanePos(self):
         global result_y
         global result_x
