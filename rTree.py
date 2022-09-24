@@ -1,3 +1,4 @@
+import copy
 import re
 from telnetlib import NOOPT
 from tkinter import N
@@ -44,14 +45,18 @@ class RTree:
 
 
     # Insert node
-    def insert(self,root:RTreeNode,object:Object):
+    def insert(self,mbr):
         #get leaf to insert new object
-        best_node = self.chooseLeaf(root,object)
-        best_node.child.append(object)
+        best_node = self.chooseLeaf(self.root,mbr)
+        print("check")
+        best_node.mbr.append(mbr)
         
         #if node's entries exceed the maximum val M then call splitNode()
-        if len(best_node.child) > self.M:
+        if len(best_node.mbr) > self.M:
+            print("split occured")
             L,LL = self.quadraticSplit(best_node)
+            print("group 1 size"+str(len(L.mbr)))
+            print("group 2 size"+str(len(LL.mbr)))
             
 
 
@@ -150,6 +155,7 @@ class RTree:
 
         group_2 = RTreeNode()
         group_2.mbr.append(node.mbr[worst_pair[1]])    
+        
         #group_2.child.append(node.child[worst_pair[1]])  
 
         del node.mbr[worst_pair[0]]  
@@ -157,19 +163,25 @@ class RTree:
         #del node.child[worst_pair]  
 
         while len(node.mbr) > 0:
-            print(len(node.mbr))
-            if len(group_1.mbr) < self.m and len(group_1.mbr) + len(node.mbr) == self.m:
+            
+            
+            
+            
+            if len(group_1.mbr) < self.m and (len(group_1.mbr) + len(node.mbr)) == self.m:
                 #group_1.child.append(node.child)
-                group_1.mbr.append(node.mbr)
+                group_1.mbr.extend(node.mbr)
+                
                 break
 
-            elif len(group_1.mbr) < self.m and len(group_1.mbr) + len(node.mbr) == self.m:
+            elif len(group_2.mbr) < self.m and len(group_2.mbr) + len(node.mbr) == self.m:
                 #group_1.child.append(node.child)
-                group_1.mbr.append(node.mbr)
+                group_2.mbr.extend(node.mbr)
+                
                 break
             
             else:
                 next_pick = self.pickNext(node,group_1,group_2)
+                
                 tmp_node = RTreeNode()
 
                 #calc total mbrs of groups
@@ -187,12 +199,16 @@ class RTree:
                 
                 
                 best_group = self.bestCandidateRectangle(tmp_node,node.mbr[next_pick])
+               
                 if best_group == 0:
                     #group_1.child.append(node.child)
-                    group_1.mbr.append(node.mbr.pop(next_pick))    
+                    mbr = node.mbr.pop(next_pick)
+                    
+                    group_1.mbr.append(mbr)    
                 else:
                     #group_1.child.append(node.child)
                     group_1.mbr.append(node.mbr.pop(next_pick))
+                    
         
         return group_1,group_2
 
@@ -250,7 +266,7 @@ class RTree:
 
         for index, entry in enumerate(node.mbr):
             #calculate group_1 volume including the new element
-            tmp_node_1 = group_1
+            tmp_node_1 =copy.deepcopy(group_1)
             tmp_node_1.mbr.append(entry)
 
             tmp_min_1, tmp_max_1 = self.findMinMax(tmp_node_1)
@@ -259,7 +275,7 @@ class RTree:
 
 
             #calculate group_2 volume including the new element
-            tmp_node_2 = group_2
+            tmp_node_2 = copy.deepcopy(group_2)
             tmp_node_2.mbr.append(entry)
 
             tmp_min_2, tmp_max_2 = self.findMinMax(tmp_node_2)
@@ -319,6 +335,7 @@ class RTree:
 
 def main():
     r = RTree(4)
+    
     test_node = RTreeNode(False)
     mbr_1 = MinBoundingRectangle(x_thres=[2,8], y_thres=[1,5], t_thres=[1,3])
     mbr_2 = MinBoundingRectangle(x_thres=[3,10], y_thres=[5,9], t_thres=[1,3])
@@ -327,13 +344,11 @@ def main():
     obj_mbr = MinBoundingRectangle(x_thres=[14,15], y_thres=[13,14], t_thres=[1,3])
     n_obj = Object(obj_mbr)
     
-    test_node.mbr.append(mbr_1)
-    test_node.mbr.append(mbr_2)
-    test_node.mbr.append(mbr_3)
-    test_node.mbr.append(mbr_4)
-    test_node.mbr.append(obj_mbr)
-    
-    group_1,group_2 = r.quadraticSplit(test_node)
+    r.insert(mbr_1)
+    r.insert(mbr_2)
+    r.insert(mbr_3)
+    r.insert(mbr_4)
+    r.insert(obj_mbr)
     
     
 
