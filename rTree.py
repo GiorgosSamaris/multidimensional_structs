@@ -10,11 +10,11 @@ import read_write_csv as rwc
 
 # Create a node
 class RTreeNode:
-  def __init__(self, leaf=False):
+  def __init__(self, leaf=False, parent = None):
     #is true when the node is a leaf
     self.leaf = leaf
     #pointer to parent node
-    #self.parent
+    self.parent = None
     #contains objects of type MinBoundingRectangle
     self.mbr = [] 
     #contains either objects of type RTreeNode or of type Object(if leaf)
@@ -48,8 +48,10 @@ class RTree:
     def insert(self,mbr):
         #get leaf to insert new object
         best_node = self.chooseLeaf(self.root,mbr)
-        print("check")
+        L=best_node
+        LL=None
         best_node.mbr.append(mbr)
+        split_performed = 0
         
         #if node's entries exceed the maximum val M then call splitNode()
         if len(best_node.mbr) > self.M:
@@ -57,7 +59,18 @@ class RTree:
             L,LL = self.quadraticSplit(best_node)
             print("group 1 size"+str(len(L.mbr)))
             print("group 2 size"+str(len(LL.mbr)))
-            
+            split_performed = 1
+        
+        self.adjustTree(L,LL)  
+
+        if L.parent == None and split_performed == 1:
+            #if root split create new root
+            self.root = RTreeNode() 
+            self.root.child = L 
+            self.root.child = LL 
+            L.parent = self.root   
+            LL.parent = self.root   
+            print("new root created")
 
 
 
@@ -117,7 +130,6 @@ class RTree:
         return best_rect_i
 
 
-
     def calculateArea(self,mbr:MinBoundingRectangle):
         area = 1
         for dimension in [mbr.x, mbr.y, mbr.t]:
@@ -141,9 +153,6 @@ class RTree:
         else:
             xceed = 0
         return xceed
-
-
-    
 
 
     def quadraticSplit(self,node:RTreeNode):
@@ -212,9 +221,6 @@ class RTree:
         
         return group_1,group_2
 
-            
-
-
 
     def pickSeeds(self,node:RTreeNode):
         worst_area = 0
@@ -242,6 +248,7 @@ class RTree:
                     worst_area = d
                     worst_pair = (index_i,index_j)
         return worst_pair
+
 
     def pickNext(self,node:RTreeNode,group_1:RTreeNode, group_2:RTreeNode)->int:
         
@@ -291,10 +298,7 @@ class RTree:
                 next_pick = index
              
         return next_pick
-
         
-            
-            
             
     def findMinMax(self,node:RTreeNode):
         min_ar = np.full(3,float('inf'),dtype='float32')
@@ -312,6 +316,7 @@ class RTree:
             min_ar = min_ar * ~min_bool + min_temp * min_bool
             max_ar = max_ar * ~max_bool + max_temp * max_bool
         return min_ar,max_ar
+
 
     def dimentionExtension(self,curr_dim,added_dim):
         curr_lower = curr_dim[0]
@@ -332,6 +337,14 @@ class RTree:
 
         return (domain_min,domain_max)
         
+
+    def adjustTree(self,L:RTreeNode,LL:RTreeNode=None):
+        if L.parent == None:
+            return
+
+
+    def updateParentMBR(self, node:RTreeNode):
+        for entry in node:
 
 def main():
     r = RTree(4)
