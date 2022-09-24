@@ -9,11 +9,15 @@ import read_write_csv as rwc
 # Create a node
 class RTreeNode:
   def __init__(self, leaf=False):
+    #is true when the node is a leaf
     self.leaf = leaf
+    #pointer to parent node
+    self.parent
     #contains objects of type MinBoundingRectangle
     self.mbr = [] 
     #contains either objects of type RTreeNode or of type Object(if leaf)
     self.child = []
+
 
 class MinBoundingRectangle:
     def __init__(self,x_thres,y_thres,t_thres):
@@ -38,14 +42,17 @@ class RTree:
         
 
 
-    def query(x_space,y_space,t_space):
-            NOOPT
-
     # Insert node
-    def insert(self,root,object):
+    def insert(self,root:RTreeNode,object:Object):
+        #get leaf to insert new object
         best_node = self.chooseLeaf(root,object)
         best_node.child.append(object)
-        self.splitNode(best_node)
+        
+        #if node's entries exceed the maximum val M then call splitNode()
+        if len(best_node.child) > self.M:
+            L,LL = self.quadraticSplit(best_node)
+            
+
 
 
     def chooseLeaf(self,root,object) -> RTreeNode:
@@ -130,30 +137,45 @@ class RTree:
         return xceed
 
 
-    def splitNode(self, node:RTreeNode):
-        if(len(node.child) >= self.M):
-            self.quadraticSplit(node)
+    
 
 
     def quadraticSplit(self,node:RTreeNode):
         worst_pair = self.pickSeeds(node)
 
-        pair_1 = RTreeNode()    
-        pair_1.mbr.append(node.mbr[worst_pair[0]])    
-        pair_1.child.append(node.child[worst_pair[0]])
+        group_1 = RTreeNode()    
+        group_1.mbr.append(node.mbr[worst_pair[0]])    
+        group_1.child.append(node.child[worst_pair[0]])
 
-        pair_2 = RTreeNode()
-        pair_2.mbr.append(node.mbr[worst_pair[1]])    
-        pair_2.child.append(node.child[worst_pair[1]])  
+        group_2 = RTreeNode()
+        group_2.mbr.append(node.mbr[worst_pair[1]])    
+        group_2.child.append(node.child[worst_pair[1]])  
 
         del node.mbr[worst_pair]  
         del node.child[worst_pair]  
 
-        if len(node.child) != 0:
-            self.quadraticSplit(node)
+        while len(node.child) > 0:
+            
+            if len(group_1.child) < self.m and len(group_1.child) + len(node.child) == self.m:
+                group_1.child.append(node.child)
+                group_1.mbr.append(node.mbr)
+                break
+
+            elif len(group_1.child) < self.m and len(group_1.child) + len(node.child) == self.m:
+                group_1.child.append(node.child)
+                group_1.mbr.append(node.mbr)
+                break
+            
+            else:
+                self.pickNext(node,group_1,group_2)
+        
+        return group_1,group_2
+
+            
 
 
-    def pickSeeds(self,node:RTreeNode):
+
+    def pickSeeds(self,node:RTreeNode)->tuple(int,int):
         worst_area = 0
 
         #find each possible combination of entries
@@ -179,7 +201,10 @@ class RTree:
                     worst_pair = (index_i,index_j)
         return worst_pair
 
-    def pickNext(self,node:RTreeNode):
+    def pickNext(self,node:RTreeNode,group_1:RTreeNode, group_2:RTreeNode):
+        for e in node.mbr:
+            for 
+            
          
 
     def dimentionExtension(self,curr_dim,added_dim):
