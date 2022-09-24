@@ -1,4 +1,5 @@
 import copy
+from multiprocessing import parent_process
 import re
 from telnetlib import NOOPT
 from tkinter import N
@@ -66,8 +67,8 @@ class RTree:
         if L.parent == None and split_performed == 1:
             #if root split create new root
             self.root = RTreeNode() 
-            self.root.child = L 
-            self.root.child = LL 
+            self.root.child.append(L) 
+            self.root.child.append(LL) 
             L.parent = self.root   
             LL.parent = self.root   
             print("new root created")
@@ -339,12 +340,27 @@ class RTree:
         
 
     def adjustTree(self,L:RTreeNode,LL:RTreeNode=None):
+
         if L.parent == None:
             return
+        self.updateParentMBR(L)
+        if LL!=None:
+            parent = L.parent
+            parent.child.append(LL)
+            self.updateParentMBR(LL)
+            if len(parent.child)>self.m:
+                N,NN = self.quadraticSplit(parent)
+                self.adjustTree(N,NN)
 
 
     def updateParentMBR(self, node:RTreeNode):
-        for entry in node:
+        min,max = self.findMinMax(node)
+        parent_node = node.parent
+        index = parent_node.child.index(node)
+        mbr = parent_node.mbr[index]
+        mbr.x = [min[0],max[0]]
+        mbr.y = [min[1],max[1]]
+        mbr.t = [min[2],max[2]]
 
 def main():
     r = RTree(4)
