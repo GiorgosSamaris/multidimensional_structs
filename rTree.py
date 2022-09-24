@@ -169,7 +169,29 @@ class RTree:
             
             else:
                 next_pick = self.pickNext(node,group_1,group_2)
-                self.bestCandidateRectangle(node)
+                tmp_node = RTreeNode
+
+                #calc total mbrs of groups
+                min_1, max_1 = self.findMinMax(group_1)
+                mbr_1 = MinBoundingRectangle([min_1[0],max_1[0]],
+                [min_1[1],max_1[1]],[min_1[2],max_1[2]])
+
+
+                min_2, max_2 = self.findMinMax(group_2)
+                mbr_2 = MinBoundingRectangle([min_2[0],max_2[0]],
+                [min_2[1],max_2[1]],[min_2[2],max_2[2]])
+
+                tmp_node.mbr.append(mbr_1)
+                tmp_node.mbr.append(mbr_2)
+                
+                
+                best_group = self.bestCandidateRectangle(tmp_node)
+                if best_group == 0:
+                    group_1.child.append(node.child)
+                    group_1.mbr.append(node.mbr)    
+                else:
+                    group_1.child.append(node.child)
+                    group_1.mbr.append(node.mbr)
         
         return group_1,group_2
 
