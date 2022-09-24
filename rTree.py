@@ -1,3 +1,4 @@
+import re
 from telnetlib import NOOPT
 from tkinter import N
 from typing import ByteString
@@ -167,7 +168,8 @@ class RTree:
                 break
             
             else:
-                self.pickNext(node,group_1,group_2)
+                next_pick = self.pickNext(node,group_1,group_2)
+                self.bestCandidateRectangle(node)
         
         return group_1,group_2
 
@@ -201,11 +203,72 @@ class RTree:
                     worst_pair = (index_i,index_j)
         return worst_pair
 
-    def pickNext(self,node:RTreeNode,group_1:RTreeNode, group_2:RTreeNode):
-        for e in node.mbr:
-            for 
+    def pickNext(self,node:RTreeNode,group_1:RTreeNode, group_2:RTreeNode)->int:
+        
+
+        #calculate group_1 volume
+        min_1, max_1 = self.findMinMax(group_1)
+    
+        area_mat_1 = max_1 - min_1
+        area_1 *= area_mat_1[0] * area_mat_1[1] * area_mat_1[2]
+
+
+        #calculate group_2 volume
+        min_2, max_2 = self.findMinMax(group_2)
+        
+        area_mat_2 = max_2 - min_2
+        area_2 *= area_mat_2[0] * area_mat_2[1] * area_mat_2[2]
+
+        worst_dif = 0
+        next_pick = 0
+        tmp_node_1 = RTreeNode()
+        tmp_node_2 = RTreeNode()
+
+        for index, entry in enumerate(node.mbr):
+            #calculate group_1 volume including the new element
+            tmp_node_1 = group_1
+            tmp_node_1.mbr.append(entry)
+
+            tmp_min_1, tmp_max_1 = self.findMinMax(tmp_node_1)
+            tmp_area_mat_1 = tmp_max_1 - tmp_min_1
+            tmp_area_1 = tmp_area_mat_1[0]*tmp_area_mat_1[1]*tmp_area_mat_1[2]
+
+
+            #calculate group_2 volume including the new element
+            tmp_node_2 = group_2
+            tmp_node_2.mbr.append(entry)
+
+            tmp_min_2, tmp_max_2 = self.findMinMax(tmp_node_2)
+            tmp_area_mat_2 = tmp_max_2 - tmp_min_2
+            tmp_area_2 = tmp_area_mat_2[0]*tmp_area_mat_2[1]*tmp_area_mat_2[2]
+
+            d_1 = tmp_area_1 - area_1
+            d_2 = tmp_area_2 - area_2
+
+            dif = abs(d_2 - d_1)
+            if worst_dif < dif:
+                worst_dif = dif
+                next_pick = index
+             
+        return next_pick
+
+        
             
-         
+            
+            
+    def findMinMax(self,node:RTreeNode):
+        min_ar = np.full(3,float('inf'),dtype='float32')
+        max_ar = np.zeros(3,dtype='float32')
+        for entry in node.mbr:
+            min_temp = np.array([entry.x[0],entry.y[0],entry.t[0]])
+            max_temp = np.array([entry.x[1],entry.y[1],entry.t[1]])
+
+            min_bool = min_ar > min_temp
+            max_bool = max_ar < max_temp
+
+            min_ar = min_ar * ~min_bool + min_temp * min_bool
+            max_ar = max_ar * ~max_bool + max_temp * max_bool
+        return min_ar,max_ar
 
     def dimentionExtension(self,curr_dim,added_dim):
         curr_lower = curr_dim[0]
