@@ -13,7 +13,7 @@ class RTreeNode:
     #is true when the node is a leaf
     self.leaf = leaf
     #pointer to parent node
-    self.parent
+    #self.parent
     #contains objects of type MinBoundingRectangle
     self.mbr = [] 
     #contains either objects of type RTreeNode or of type Object(if leaf)
@@ -65,9 +65,9 @@ class RTree:
             return self.chooseLeaf(child,object)
 
 
-    def bestCandidateRectangle(self, node:RTreeNode, object:Object) -> int:
+    def bestCandidateRectangle(self, node:RTreeNode, object:MinBoundingRectangle) -> int:
         best_rect = np.zeros(3,dtype='int32')
-        obj_mbr = object.mbr
+        obj_mbr = object
         
         #init the prev_tup with infinite values 
         prev_tup = (float('inf'),float('inf'),float('inf'))
@@ -146,30 +146,31 @@ class RTree:
 
         group_1 = RTreeNode()    
         group_1.mbr.append(node.mbr[worst_pair[0]])    
-        group_1.child.append(node.child[worst_pair[0]])
+        #group_1.child.append(node.child[worst_pair[0]])
 
         group_2 = RTreeNode()
         group_2.mbr.append(node.mbr[worst_pair[1]])    
-        group_2.child.append(node.child[worst_pair[1]])  
+        #group_2.child.append(node.child[worst_pair[1]])  
 
-        del node.mbr[worst_pair]  
-        del node.child[worst_pair]  
+        del node.mbr[worst_pair[0]]  
+        del node.mbr[worst_pair[1]]  
+        #del node.child[worst_pair]  
 
-        while len(node.child) > 0:
-            
-            if len(group_1.child) < self.m and len(group_1.child) + len(node.child) == self.m:
-                group_1.child.append(node.child)
+        while len(node.mbr) > 0:
+            print(len(node.mbr))
+            if len(group_1.mbr) < self.m and len(group_1.mbr) + len(node.mbr) == self.m:
+                #group_1.child.append(node.child)
                 group_1.mbr.append(node.mbr)
                 break
 
-            elif len(group_1.child) < self.m and len(group_1.child) + len(node.child) == self.m:
-                group_1.child.append(node.child)
+            elif len(group_1.mbr) < self.m and len(group_1.mbr) + len(node.mbr) == self.m:
+                #group_1.child.append(node.child)
                 group_1.mbr.append(node.mbr)
                 break
             
             else:
                 next_pick = self.pickNext(node,group_1,group_2)
-                tmp_node = RTreeNode
+                tmp_node = RTreeNode()
 
                 #calc total mbrs of groups
                 min_1, max_1 = self.findMinMax(group_1)
@@ -185,13 +186,13 @@ class RTree:
                 tmp_node.mbr.append(mbr_2)
                 
                 
-                best_group = self.bestCandidateRectangle(tmp_node)
+                best_group = self.bestCandidateRectangle(tmp_node,node.mbr[next_pick])
                 if best_group == 0:
-                    group_1.child.append(node.child)
-                    group_1.mbr.append(node.mbr)    
+                    #group_1.child.append(node.child)
+                    group_1.mbr.append(node.mbr.pop(next_pick))    
                 else:
-                    group_1.child.append(node.child)
-                    group_1.mbr.append(node.mbr)
+                    #group_1.child.append(node.child)
+                    group_1.mbr.append(node.mbr.pop(next_pick))
         
         return group_1,group_2
 
@@ -199,24 +200,25 @@ class RTree:
 
 
 
-    def pickSeeds(self,node:RTreeNode)->tuple(int,int):
+    def pickSeeds(self,node:RTreeNode):
         worst_area = 0
 
         #find each possible combination of entries
         pair_comb = []
         for index_i, entry_i in enumerate(node.mbr):
-            for index_j, entry_j in node.mbr[index_i+1:]:
-                #pair_comb.append((entry_i,entry_j))
-                #temporal MBR
-                temp_tuple = []
-                for dim_i,dim_j in entry_i,entry_j:
-                    dim_domain = self.dimentionExtension(dim_i,dim_j)
-                    temp_tuple.append(dim_domain)
-
+            for index_j, entry_j in enumerate(node.mbr[index_i+1:]):
+                
+                temp_node = RTreeNode()
+                temp_node.mbr.append(entry_i)
+                temp_node.mbr.append(entry_j)
+                min_1, max_1 = self.findMinMax(temp_node)
+    
+                area_mat_1 = max_1 - min_1
+                area_total = area_mat_1[0] * area_mat_1[1] * area_mat_1[2]
 
                 #calculate the area of each rectangle containing the pair
                 #combinations        
-                area_total = self.calculateArea(temp_tuple)
+        
                 area_i = self.calculateArea(entry_i)
                 area_j = self.calculateArea(entry_j)
                 d = area_total - area_i - area_j
@@ -232,14 +234,14 @@ class RTree:
         min_1, max_1 = self.findMinMax(group_1)
     
         area_mat_1 = max_1 - min_1
-        area_1 *= area_mat_1[0] * area_mat_1[1] * area_mat_1[2]
+        area_1 = area_mat_1[0] * area_mat_1[1] * area_mat_1[2]
 
 
         #calculate group_2 volume
         min_2, max_2 = self.findMinMax(group_2)
         
         area_mat_2 = max_2 - min_2
-        area_2 *= area_mat_2[0] * area_mat_2[1] * area_mat_2[2]
+        area_2 = area_mat_2[0] * area_mat_2[1] * area_mat_2[2]
 
         worst_dif = 0
         next_pick = 0
@@ -281,11 +283,14 @@ class RTree:
     def findMinMax(self,node:RTreeNode):
         min_ar = np.full(3,float('inf'),dtype='float32')
         max_ar = np.zeros(3,dtype='float32')
-        for entry in node.mbr:
+        for i,entry in enumerate(node.mbr):
+            if(i==0):
+                min_ar = np.array([entry.x[0],entry.y[0],entry.t[0]])
             min_temp = np.array([entry.x[0],entry.y[0],entry.t[0]])
             max_temp = np.array([entry.x[1],entry.y[1],entry.t[1]])
-
+           
             min_bool = min_ar > min_temp
+            
             max_bool = max_ar < max_temp
 
             min_ar = min_ar * ~min_bool + min_temp * min_bool
@@ -326,9 +331,11 @@ def main():
     test_node.mbr.append(mbr_2)
     test_node.mbr.append(mbr_3)
     test_node.mbr.append(mbr_4)
+    test_node.mbr.append(obj_mbr)
     
-    best = r.bestCandidateRectangle(test_node,n_obj)
-    print(best)
+    group_1,group_2 = r.quadraticSplit(test_node)
+    
+    
 
 if __name__ == '__main__':
   main()
