@@ -156,7 +156,7 @@ def main():
     
     print("tree creation completed successfuly")
 
-    mbr_q = rtr.MinBoundingRectangle([0,2500],[0,2500],[0,1])
+    mbr_q = rtr.MinBoundingRectangle([1500,1900],[1600,1800],[0,1])
 
     query_response = r.search(r.root,mbr_q)
 
