@@ -14,6 +14,7 @@ import time
 import numpy as np
 from matplotlib.animation import FuncAnimation 
 import read_write_csv as csvW
+import rTree as rtr
 
 
 #definitions
@@ -63,6 +64,21 @@ def readGisData(file_path):
     m_file.close()
     print('In file: '+str(file_path)+', '+str(num_lines_read)+' lines were read.')
     return m_list
+
+
+def initRTree(t_1,t_2,active_planes):
+    r = rtr.RTree(10)
+    x_1,y_1 = pln.calcDisplacement(0,t_1)
+    x_2,y_2 = pln.calcDisplacement(t_1,t_2,x_1)
+    
+    for i, plane in enumerate(active_planes):
+        mbr = rtr.MinBoundingRectangle([x_1[i],x_2[i]], [y_1[i],y_2[i]],
+        [t_1,t_2])
+        print(i)
+        obj = rtr.Object(plane,mbr)
+        
+        r.insert(obj)
+    return r
 
 
 def animate(i):
@@ -130,28 +146,30 @@ def main():
         active_planes.append(p)
         route_id +=1
     print(str(len(active_planes))+" planes generated and assigned to a route successfuly!")
-    print("beginning simulation...")
+    print("creating tree...")
     
    
     
-    pln.generateTransformMatrices(active_planes[:10],line_eqs[:10])
+    pln.generateTransformMatrices(active_planes[:200],line_eqs[:200])
     
-   
+    r = initRTree(0,1,active_planes[:200])
+    
+    print("tree creation completed successfuly")
   
 
     #///////////////////////////////////////////////////////////////////////////////////////////
 
 
-    img = mpimg.imread('map.jpeg')
-    imgplot = plt.imshow(img)
-    #fig,ax = plt.subplot()
-    plt.xlim(0, mapWidth)
-    plt.ylim(mapHeight,0)
-    x_coords,y_coords = listToArray(port_loc)
-    plt.scatter(x_coords,y_coords,color='red',s=0.1)
-    tm.startTime()
-    anim = FuncAnimation(plt.gcf(), animate,interval = 100,frames=20)
-    plt.show()
+    #img = mpimg.imread('map.jpeg')
+    #imgplot = plt.imshow(img)
+    ##fig,ax = plt.subplot()
+    #plt.xlim(0, mapWidth)
+    #plt.ylim(mapHeight,0)
+    #x_coords,y_coords = listToArray(port_loc)
+    #plt.scatter(x_coords,y_coords,color='red',s=0.1)
+    #tm.startTime()
+    #anim = FuncAnimation(plt.gcf(), animate,interval = 100,frames=20)
+    #plt.show()
 
 if __name__ == "__main__":
     main() 

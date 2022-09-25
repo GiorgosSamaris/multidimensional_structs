@@ -1,3 +1,4 @@
+from ast import Not
 from ctypes import sizeof
 import random as rand
 import math as mth
@@ -93,10 +94,13 @@ class PlaneGeneration:
 
 
     #calculate displacement given initial time and time of interest
-    def calcDisplacement(self,t_0,t):
+    def calcDisplacement(self,t_0, t, x_0=np.empty( shape=(0, 0) )):
         
         #get time displacement matrix
         dt = [t - t_0,1]
+        if len(x_0) != 0:
+            self.dx_matrix = np.delete(self.dx_matrix,1,axis=1)
+            self.dx_matrix = np.column_stack((self.dx_matrix,x_0.T))
         
         result_x = np.matmul(self.dx_matrix,dt)
         
