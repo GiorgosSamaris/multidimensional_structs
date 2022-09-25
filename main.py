@@ -155,6 +155,12 @@ def main():
     r = initRTree(0,1,active_planes[:200])
     
     print("tree creation completed successfuly")
+
+    mbr_q = rtr.MinBoundingRectangle([0,2500],[0,2500],[0,1])
+
+    query_response = r.search(r.root,mbr_q)
+
+    print("items found inside: ", len(query_response))
   
 
     #///////////////////////////////////////////////////////////////////////////////////////////

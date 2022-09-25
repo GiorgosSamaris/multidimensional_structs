@@ -3,7 +3,7 @@ from multiprocessing import parent_process
 import re
 from telnetlib import NOOPT
 from tkinter import N
-from typing import ByteString
+from typing import ByteString, overload
 import numpy as np
 import planeGeneration as plane
 
@@ -46,13 +46,14 @@ class RTree:
 
     # Insert node
     def insert(self,obj:Object):
-        #get leaf to insert new object
         mbr = obj.mbr
-        #print("min x of mbr: ",obj.mbr.x[0])
+        
+        #get leaf to insert new object
         best_node = self.chooseLeaf(self.root,mbr)
-        L=best_node
-        LL=None
+        L = best_node
+        LL = None
         best_node.mbr.append(mbr)
+        
         best_node.child.append(obj)
         split_performed = 0
         
@@ -60,11 +61,21 @@ class RTree:
         if len(best_node.mbr) > self.M:
             
             L,LL = self.quadraticSplit(best_node)
+            L.parent = best_node.parent
+            LL.parent = best_node.parent
+
+            #swap best_node in its parent for L
+            if best_node.parent != None:
+                index = best_node.parent.child.index(best_node)
+                L.parent.child[index] = L
             
+            print("split performed successfuly")
+            print("L ", len(L.mbr), ", LL ", len(LL.mbr))
+
             split_performed = 1
         
         
-        self.adjustTree(L,LL)  
+        self.adjustTree(L,LL,split_performed)  
 
         #root splitted due to split propagation
         if L.parent == None and split_performed == 1:
@@ -95,6 +106,7 @@ class RTree:
 
     def chooseLeaf(self,root:RTreeNode,object) -> RTreeNode:
         if root.leaf:
+            
             return root
         else:
             
@@ -177,34 +189,35 @@ class RTree:
 
 
     def quadraticSplit(self,node:RTreeNode):
+       
         worst_pair = self.pickSeeds(node)
-        leaf = False
-        if node.leaf:
-            leaf = True
+        
+
+        #new nodes are leaves only if the node that is being split
+        #is a leaf
+        leaf = node.leaf
+
         group_1 = RTreeNode(leaf)    
-        group_1.mbr.append(node.mbr[worst_pair[0]])    
-        group_1.child.append(node.child[worst_pair[0]])
+        group_1.mbr.append(node.mbr.pop(worst_pair[0]))    
+        group_1.child.append(node.child.pop(worst_pair[0]))
 
         group_2 = RTreeNode(leaf)
-        group_2.mbr.append(node.mbr[worst_pair[1]])    
-        
-        group_2.child.append(node.child[worst_pair[1]])  
+        group_2.mbr.append(node.mbr.pop(worst_pair[1]-1))    
+        group_2.child.append(node.child.pop(worst_pair[1]-1))  
 
-        del node.mbr[worst_pair[0]]  
-        del node.mbr[worst_pair[1]]  
-        del node.child[worst_pair[0]]  
-        del node.child[worst_pair[1]]  
+         
 
         while len(node.mbr) > 0:
     
             if len(group_1.mbr) < self.m and (len(group_1.mbr) + len(node.mbr)) == self.m:
-                group_1.child.append(node.child)
+                group_1.child.extend(node.child)
                 group_1.mbr.extend(node.mbr)
                 
                 break
 
             elif len(group_2.mbr) < self.m and len(group_2.mbr) + len(node.mbr) == self.m:
-                group_1.child.append(node.child)
+                
+                group_2.child.extend(node.child)
                 group_2.mbr.extend(node.mbr)
                 
                 break
@@ -229,14 +242,15 @@ class RTree:
                 
                 
                 best_group = self.bestCandidateRectangle(tmp_node,node.mbr[next_pick])
+                
                
                 if best_group == 0:
-                    group_1.child.append(node.child)
+                    group_1.child.append(node.child.pop(next_pick))
                     mbr = node.mbr.pop(next_pick)
                     
                     group_1.mbr.append(mbr)    
                 else:
-                    group_1.child.append(node.child)
+                    group_1.child.append(node.child.pop(next_pick))
                     group_1.mbr.append(node.mbr.pop(next_pick))
                     
         
@@ -249,8 +263,9 @@ class RTree:
         #find each possible combination of entries
         
         for index_i, entry_i in enumerate(node.mbr):
-            for index_j, entry_j in enumerate(node.mbr[index_i+1:]):
-            
+          
+            for index_j in range(index_i+1,len(node.mbr)):
+                entry_j = node.mbr[index_j]
                 temp_node = RTreeNode()
                 temp_node.mbr.append(entry_i)
                 temp_node.mbr.append(entry_j)
@@ -269,7 +284,6 @@ class RTree:
                     worst_area = d
                     worst_pair = (index_i,index_j)
         return worst_pair
-
 
     def pickNext(self,node:RTreeNode,group_1:RTreeNode, group_2:RTreeNode)->int:
         
@@ -360,19 +374,25 @@ class RTree:
         return (domain_min,domain_max)
         
 
-    def adjustTree(self,L:RTreeNode,LL:RTreeNode=None):
+    def adjustTree(self,L:RTreeNode,LL:RTreeNode,split_occured = 0):
 
         if L.parent == None:
             return
         self.updateParentMBR(L)
-        if LL!=None:
-            print("hello there")
+        if split_occured == 1:
+            
             parent = L.parent
             parent.child.append(LL)
-            self.updateParentMBR(LL)
+
+            #caclulate new mbr
+            min_2, max_2 = self.findMinMax(LL)
+            mbr_2 = MinBoundingRectangle([min_2[0],max_2[0]],
+            [min_2[1],max_2[1]],[min_2[2],max_2[2]])
+            parent.mbr.append(mbr_2)
+
             if len(parent.child)>self.m:
                 N,NN = self.quadraticSplit(parent)
-                self.adjustTree(N,NN)
+                self.adjustTree(N,NN,1)
 
 
     def updateParentMBR(self, node:RTreeNode):
@@ -380,11 +400,42 @@ class RTree:
         parent_node = node.parent
         
         index = parent_node.child.index(node)
-        
+        print(index)
         mbr = parent_node.mbr[index]
         mbr.x = [min[0],max[0]]
         mbr.y = [min[1],max[1]]
         mbr.t = [min[2],max[2]]
 
 
-    
+    def search(self, root:RTreeNode, mbr:MinBoundingRectangle):
+        qualifying_rec = []
+        print("Number of children ",len(root.child))
+        print("Number of mbrs ",len(root.mbr))
+        print("we are in a leaf node ", root.leaf)
+        if root.leaf==False:
+            
+            for i,e in enumerate(root.child):
+                if self.overlaps(mbr,root.mbr[i]):
+                    print("we overlap with rect ", i)
+                    qualifying_rec.extend(self.search(e,mbr))
+        else:
+            for i,e in enumerate(root.child):
+                if self.overlaps(root.mbr[i],mbr):
+                    print("child ", i, " added")
+                    qualifying_rec.append(e)
+        return qualifying_rec      
+
+    def overlaps(self,mbr_1:MinBoundingRectangle,mbr_2:MinBoundingRectangle):
+        x_overlap = True
+        y_overlap = True
+        t_overlap = True
+        if mbr_1.x[1] < mbr_2.x[0] or mbr_2.x[1]<mbr_1.x[0]:
+            x_overlap = False
+
+        if mbr_1.y[1] < mbr_2.y[0] or mbr_2.y[1]<mbr_1.y[0]:
+            y_overlap = False
+
+        if mbr_1.t[1] < mbr_2.t[0] or mbr_2.t[1]<mbr_1.t[0]:
+            t_overlap = False
+        
+        return x_overlap and y_overlap and t_overlap
