@@ -1,6 +1,3 @@
-from ast import Eq
-from ctypes import sizeof
-import math as mth
 import timeWrapper as tw
 import planeGeneration as plane
 import routeGeneration as route
@@ -9,8 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import re
 import random as rand
-from numpy import dsplit
-import time 
+from PIL import Image
 import numpy as np
 from matplotlib.animation import FuncAnimation 
 import read_write_csv as csvW
@@ -66,11 +62,13 @@ def readGisData(file_path):
     return m_list
 
 
-def initRTree(t_1,t_2,active_planes):
-    r = rtr.RTree(10)
+def initRTree(t_1,t_2,active_planes,b=10):
+    r = rtr.RTree(b)
     x_1,y_1 = pln.calcDisplacement(0,t_1)
     x_2,y_2 = pln.calcDisplacement(t_1,t_2,x_1)
     
+    plt.plot([x_1,x_2],[y_1,y_2],color='black')
+
     for i, plane in enumerate(active_planes):
         mbr = rtr.MinBoundingRectangle([x_1[i],x_2[i]], [y_1[i],y_2[i]],
         [t_1,t_2])
@@ -79,6 +77,14 @@ def initRTree(t_1,t_2,active_planes):
         
         r.insert(obj)
     return r
+
+def query(mbr,active_planes,b_factor = 10):
+    print("creating tree...")
+    r = initRTree(mbr.t[0],mbr.t[1],active_planes,b_factor)
+    query_response = r.search(r.root,mbr)
+    print("tree creation completed successfuly")
+    return query_response
+
 
 
 def animate(i):
@@ -91,6 +97,13 @@ def animate(i):
     plt.scatter(result_x,result_y,color='black',s=0.05)
 
 def main():
+    plt.figure()  
+    img = mpimg.imread('map.jpeg')
+    plt.xlim(0,mapWidth)
+    plt.ylim(mapHeight,0)
+    imgplot = plt.imshow(img)
+
+
     airport_list = readGisData("airports.dat.txt")
     plane_list = readGisData("planes.dat.txt")
     route_list = readGisData("routes.dat.txt")
@@ -146,36 +159,37 @@ def main():
         active_planes.append(p)
         route_id +=1
     print(str(len(active_planes))+" planes generated and assigned to a route successfuly!")
-    print("creating tree...")
     
+    
+    x_coords,y_coords = listToArray(port_loc)
+    plt.scatter(x_coords,y_coords,color='red',s=0.1)
    
     
-    pln.generateTransformMatrices(active_planes[:200],line_eqs[:200])
+    pln.generateTransformMatrices(active_planes[:1000],line_eqs[:1000])
     
-    r = initRTree(0,1,active_planes[:200])
     
-    print("tree creation completed successfuly")
+    
 
-    mbr_q = rtr.MinBoundingRectangle([1500,1900],[1600,1800],[0,1])
+    mbr_q = rtr.MinBoundingRectangle([1000,1230],[600,814],[0,1])
 
-    query_response = r.search(r.root,mbr_q)
+    query_response = query(mbr_q,active_planes[:1000],75)
 
-    print("items found inside: ", len(query_response))
-  
+    print("items found inside: " + str(len(query_response)))
 
-    #///////////////////////////////////////////////////////////////////////////////////////////
+    
+    
+    plt.figure()
+    plt.imshow(img)
+    plt.title("items found inside: " + str(len(query_response)))
+    plt.xlim(mbr_q.x)
+    plt.ylim(mbr_q.y[1],mbr_q.y[0])
+    for obj in query_response:
+        mbr = obj.mbr
+        
+        plt.plot([mbr.x[0],mbr.x[1]],[mbr.y[0],mbr.y[1]])
 
-
-    #img = mpimg.imread('map.jpeg')
-    #imgplot = plt.imshow(img)
-    ##fig,ax = plt.subplot()
-    #plt.xlim(0, mapWidth)
-    #plt.ylim(mapHeight,0)
-    #x_coords,y_coords = listToArray(port_loc)
-    #plt.scatter(x_coords,y_coords,color='red',s=0.1)
-    #tm.startTime()
-    #anim = FuncAnimation(plt.gcf(), animate,interval = 100,frames=20)
-    #plt.show()
+    
+    plt.show()
 
 if __name__ == "__main__":
     main() 

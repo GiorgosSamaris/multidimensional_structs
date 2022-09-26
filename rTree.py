@@ -63,10 +63,7 @@ class RTree:
         if len(best_node.mbr) > self.M:
             
             L,LL = self.quadraticSplit(best_node)
-            
-            
-            print("split performed successfuly")
-            print("L ", len(L.mbr), ", LL ", len(LL.mbr))
+        
 
             split_performed = 1
         
@@ -76,7 +73,7 @@ class RTree:
         #root splitted due to split propagation
         if split_performed == 1:
             #if root split create new root
-            print("creating new root")
+            
             n_root = RTreeNode()
             self.root = n_root 
             self.root.child.append(N) 
@@ -84,7 +81,7 @@ class RTree:
 
             N.parent = self.root   
             NN.parent = self.root   
-            print("length of children of split root", len(N.child), len(NN.child))
+            
             min,max = self.findMinMax(N)
             parent_node = N.parent
             mbr = MinBoundingRectangle([min[0],max[0]],[min[1],max[1]],
@@ -107,7 +104,7 @@ class RTree:
             return root
         else:
             best_rect = self.bestCandidateRectangle(root,object)
-            print("picked node",best_rect)
+            
             
             child = root.child[best_rect]
             return self.chooseLeaf(child,object)
@@ -250,15 +247,10 @@ class RTree:
                     group_1.child.append(node.child.pop(next_pick))
                     group_1.mbr.append(node.mbr.pop(next_pick))
 
-        #group_1.parent = node.parent
+        
         group_2.parent = node.parent
 
-        #swap best_node in its parent for L
-        #if node.parent != None:
-        #    for i,e in enumerate(node.parent.child):
-        #        if len(e.child)==0:
-        #            node.parent.child[i]=group_1
-        #            break
+       
         node.mbr = group_1.mbr
         node.child = group_1.child
         
@@ -387,7 +379,7 @@ class RTree:
         if L.parent == None:
             return L,LL,split_occured
         
-        print("check")
+        
         self.updateParentMBR(L)
         if split_occured == 1:
             
@@ -401,9 +393,9 @@ class RTree:
             parent.mbr.append(mbr_2)
 
             if len(parent.child)>self.M:
-                print("parent split")
+                
                 N,NN = self.quadraticSplit(parent)
-                print("groups ", len(N.mbr), len(NN.mbr))
+                
                 return self.adjustTree(N,NN,1)
         return self.adjustTree(L.parent,None,0)
                 
@@ -420,19 +412,17 @@ class RTree:
 
     def search(self, root:RTreeNode, mbr:MinBoundingRectangle):
         qualifying_rec = []
-        print("Number of children ",len(root.child))
         
-        print("we are in a leaf node ", root.leaf)
         if root.leaf==False:
             
             for i,e in enumerate(root.child):
                 if self.overlaps(mbr,root.mbr[i]):
-                    print("we overlap with rect ", i)
+                    
                     qualifying_rec.extend(self.search(e,mbr))
         else:
             for i,e in enumerate(root.child):
                 if self.overlaps(root.mbr[i],mbr):
-                    print("child ", i, " added")
+                    
                     qualifying_rec.append(e)
         return qualifying_rec      
 
